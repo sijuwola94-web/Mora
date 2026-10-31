@@ -1,13 +1,13 @@
-    {
-     "expo": {
-       "name": "MORA",
-       "slug": "mora",
-       "version": "1.0.0",
-       "android": {
-         "package": "com.morabeza.mora"
-       },
-       "ios": {
-         "bundleIdentifier": "com.morabeza.mora"
-       }
-     }
-   }
+ {
+  "expo": {
+    "name": "MORA",
+    "slug": "mora",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.morabeza.mora"
+    },
+    "ios": {
+      "bundleIdentifier": "com.morabeza.mora"
+    }
+  }
+}
