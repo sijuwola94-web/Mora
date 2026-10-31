@@ -1,10 +1,20 @@
-  {
+ {
   "expo": {
-    "name": "MORA",
-    "slug": "mora",
+    "name": "MORA Market",
+    "slug": "mora-market-praia",
     "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0e0e0e"
+    },
     "android": {
-      "package": "com.morabeza.mora"
-    }
+      "package": "com.moramarket.praia",
+      "versionCode": 1
+    },
+    "platforms": ["android"],
+    "sdkVersion": "51.0.0"
   }
 }
