@@ -1,8 +1,8 @@
  import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD2mdL9guxMrvejqfxcsVrSbpzvSjd8lgk",
@@ -15,92 +15,122 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 export default function App() {
+  const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
-  const [name, setName] = useState('');
+  const [tab, setTab] = useState('feed');
+  const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
-  const [phone, setPhone] = useState('');
   const [desc, setDesc] = useState('');
-  const [showPost, setShowPost] = useState(false);
-  const [search, setSearch] = useState('');
+  const [contact, setContact] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
-    signInAnonymously(auth).catch(()=>{});
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    signInAnonymously(auth).catch(e => Alert.alert("Auth error", e.message));
+    const unsubAuth = onAuthStateChanged(auth, u => {
+      setUser(u);
+      setLoading(false);
     });
-    return unsub;
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const unsubProducts = onSnapshot(q, snap => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setProducts(items);
+    });
+    return () => { unsubAuth(); unsubProducts(); };
   }, []);
 
   const postProduct = async () => {
-    if (!name || !price || !phone) return Alert.alert("Fill name, price, phone");
+    if(!title || !price) { Alert.alert("Preenche titulo e preço"); return; }
+    setPosting(true);
     try {
       await addDoc(collection(db, "products"), {
-        name, price: Number(price), phone, desc, createdAt: serverTimestamp()
+        title, price: Number(price), desc, contact, createdAt: serverTimestamp(), uid: user?.uid || "anon"
       });
-      setName(''); setPrice(''); setPhone(''); setDesc(''); setShowPost(false);
-      Alert.alert("Posted! ✅ Everyone in Praia sees it now");
-    } catch(e){ Alert.alert("Error", e.message); }
+      setTitle(''); setPrice(''); setDesc(''); setContact('');
+      setTab('feed');
+      Alert.alert("Boa! Produto publicado!");
+    } catch(e){ Alert.alert("Erro", e.message); }
+    setPosting(false);
   };
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const renderProduct = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.avatar}><Text style={{fontWeight:'900', color:'white'}}>M</Text></View>
+        <View>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardTime}>Praia • agora</Text>
+        </View>
+        <Text style={styles.price}>{item.price} CVE</Text>
+      </View>
+      {item.desc ? <Text style={styles.desc}>{item.desc}</Text> : null}
+      <View style={styles.contactRow}>
+        <Text style={styles.contact}>📱 {item.contact || "Contacta no MORA"}</Text>
+        <TouchableOpacity style={styles.buyBtn}><Text style={{color:'white', fontWeight:'900'}}>Comprar</Text></TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  if(loading) return <View style={styles.center}><ActivityIndicator size="large" color="#FF6B35"/><Text style={{marginTop:10, fontWeight:'700'}}>Ligando MORA...</Text></View>;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>MORA</Text>
-      <Text style={styles.sub}>Praia Market • Live</Text>
-      <TextInput style={styles.search} placeholder="Search in Praia..." value={search} onChangeText={setSearch} />
-      
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        ListEmptyComponent={<Text style={{textAlign:'center', marginTop:50, color:'#888'}}>No products yet. Be first to sell! 👇</Text>}
-        renderItem={({item}) => (
-          <View style={styles.card}>
-            <View style={styles.imgPlace}><Text style={{fontSize:30}}>🛍️</Text></View>
-            <Text style={styles.pName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.pPrice}>{item.price} CVE</Text>
-            <Text style={styles.pLoc} numberOfLines={1}>{item.desc}</Text>
-            <TouchableOpacity style={styles.chatBtn} onPress={()=>Alert.alert("Contact Seller", `WhatsApp: ${item.phone}\n\nCopy number and chat in WhatsApp`)}><Text style={{color:'white', fontWeight:'bold', fontSize:12}}>Chat Seller</Text></TouchableOpacity>
-          </View>
-        )}
-      />
+      <View style={styles.header}>
+        <Text style={styles.logo}>MORA</Text>
+        <Text style={styles.sub}>MARKET • PRAIA</Text>
+        <Text style={styles.online}>{products.length} produtos • online</Text>
+      </View>
 
-      <TouchableOpacity style={styles.fab} onPress={()=>setShowPost(true)}><Text style={styles.fabText}>+ Sell</Text></TouchableOpacity>
+      {tab === 'feed' && (
+        <FlatList data={products} keyExtractor={i=>i.id} renderItem={renderProduct} style={{width:'100%', paddingHorizontal:15}} ListEmptyComponent={<Text style={{textAlign:'center', marginTop:50, opacity:0.5}}>Nenhum produto ainda. Sê o primeiro a vender!</Text>} />
+      )}
 
-      <Modal visible={showPost} animationType="slide">
-        <ScrollView style={{padding:20, marginTop:40}}>
-          <Text style={{fontSize:24, fontWeight:'900', marginBottom:20}}>Sell in MORA</Text>
-          <TextInput style={styles.input} placeholder="What are you selling? e.g iPhone 13" value={name} onChangeText={setName} />
-          <TextInput style={styles.input} placeholder="Price in CVE e.g 25000" keyboardType="numeric" value={price} onChangeText={setPrice} />
-          <TextInput style={styles.input} placeholder="Your WhatsApp number e.g 9912345" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
-          <TextInput style={[styles.input, {height:80}]} placeholder="Location + details (e.g Fazenda, like new)" multiline value={desc} onChangeText={setDesc} />
-          <TouchableOpacity style={styles.postBtn} onPress={postProduct}><Text style={{color:'white', fontWeight:'bold', textAlign:'center'}}>POST NOW</Text></TouchableOpacity>
-          <TouchableOpacity onPress={()=>setShowPost(false)} style={{marginTop:20}}><Text style={{textAlign:'center', color:'#666'}}>Cancel</Text></TouchableOpacity>
+      {tab === 'sell' && (
+        <ScrollView style={{width:'100%', paddingHorizontal:20}} contentContainerStyle={{paddingBottom:100}}>
+          <Text style={styles.sellTitle}>Vender em Praia</Text>
+          <TextInput placeholder="O que vendes? ex: iPhone 12" style={styles.input} value={title} onChangeText={setTitle}/>
+          <TextInput placeholder="Preço em CVE - ex: 25000" style={styles.input} keyboardType="numeric" value={price} onChangeText={setPrice}/>
+          <TextInput placeholder="Descrição (opcional)" style={[styles.input, {height:80}]} multiline value={desc} onChangeText={setDesc}/>
+          <TextInput placeholder="Teu WhatsApp - ex: 9912345" style={styles.input} keyboardType="phone-pad" value={contact} onChangeText={setContact}/>
+          <TouchableOpacity onPress={postProduct} style={styles.postBtn} disabled={posting}>
+            {posting ? <ActivityIndicator color="white"/> : <Text style={{color:'white', fontWeight:'900', fontSize:16}}>PUBLICAR • {price ? price+' CVE' : ''}</Text>}
+          </TouchableOpacity>
         </ScrollView>
-      </Modal>
+      )}
+
+      <View style={styles.tabBar}>
+        <TouchableOpacity onPress={()=>setTab('feed')} style={[styles.tab, tab==='feed' && styles.tabActive]}><Text style={{fontWeight: tab==='feed'?'900':'600'}}>🛒 Feed</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setTab('sell')} style={[styles.tab, tab==='sell' && styles.tabActive, {backgroundColor: tab==='sell' ? '#FF6B35' : 'black'}]}><Text style={{fontWeight:'900', color:'white'}}>+ Vender</Text></TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1, backgroundColor:'#fff', paddingTop:50, paddingHorizontal:12},
-  logo:{fontSize:32, fontWeight:'900', letterSpacing:5, textAlign:'center'},
-  sub:{textAlign:'center', color:'#666', marginBottom:15, fontSize:12},
-  search:{backgroundColor:'#f0f0f0', borderRadius:10, padding:12, marginBottom:12},
-  card:{flex:1, backgroundColor:'#fff', borderWidth:1, borderColor:'#eee', borderRadius:12, padding:10, margin:5},
-  imgPlace:{height:90, backgroundColor:'#f8f8f8', borderRadius:10, justifyContent:'center', alignItems:'center'},
-  pName:{fontWeight:'bold', marginTop:8, fontSize:13},
-  pPrice:{color:'#0a0', fontWeight:'bold', marginVertical:3},
-  pLoc:{fontSize:10, color:'#888'},
-  chatBtn:{backgroundColor:'#000', padding:8, borderRadius:8, marginTop:6, alignItems:'center'},
-  fab:{position:'absolute', bottom:25, right:20, backgroundColor:'#000', paddingHorizontal:22, paddingVertical:14, borderRadius:30, elevation:5},
-  fabText:{color:'#fff', fontWeight:'bold', fontSize:16},
-  input:{borderWidth:1, borderColor:'#ddd', borderRadius:10, padding:12, marginBottom:12},
-  postBtn:{backgroundColor:'#000', padding:15, borderRadius:10, marginTop:10}
+  container: { flex: 1, backgroundColor: '#FF6B35', paddingTop: 50, alignItems: 'center' },
+  center: { flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#FF6B35' },
+  header: { alignItems:'center', marginBottom:15, width:'100%' },
+  logo: { fontSize: 38, fontWeight:'900', letterSpacing:8, color:'white' },
+  sub: { fontSize:11, fontWeight:'700', color:'white', letterSpacing:3, opacity:0.9, marginTop:2 },
+  online: { fontSize:12, color:'#FFEB3B', fontWeight:'700', marginTop:6, backgroundColor:'black', paddingHorizontal:10, paddingVertical:3, borderRadius:10 },
+  card: { backgroundColor:'white', borderRadius:20, padding:15, marginBottom:12, width:'100%' },
+  cardHeader: { flexDirection:'row', alignItems:'center', gap:10 },
+  avatar: { width:38, height:38, backgroundColor:'black', borderRadius:19, justifyContent:'center', alignItems:'center' },
+  cardTitle: { fontWeight:'900', fontSize:16, maxWidth:140 },
+  cardTime: { fontSize:11, opacity:0.5, fontWeight:'600' },
+  price: { marginLeft:'auto', fontWeight:'900', fontSize:16, backgroundColor:'#FFEB3B', paddingHorizontal:10, paddingVertical:4, borderRadius:12 },
+  desc: { marginTop:10, fontSize:13, lineHeight:18, opacity:0.8 },
+  contactRow: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginTop:12 },
+  contact: { fontSize:12, fontWeight:'700' },
+  buyBtn: { backgroundColor:'black', paddingHorizontal:18, paddingVertical:8, borderRadius:20 },
+  tabBar: { flexDirection:'row', backgroundColor:'white', position:'absolute', bottom:20, borderRadius:30, padding:6, gap:6 },
+  tab: { paddingVertical:14, paddingHorizontal:28, borderRadius:25, backgroundColor:'#eee' },
+  tabActive: { backgroundColor:'#FFEB3B' },
+  sellTitle: { fontSize:22, fontWeight:'900', color:'white', marginBottom:15, marginTop:10 },
+  input: { backgroundColor:'white', borderRadius:15, padding:15, marginBottom:10, fontWeight:'600' },
+  postBtn: { backgroundColor:'black', padding:18, borderRadius:20, alignItems:'center', marginTop:10 }
 });
