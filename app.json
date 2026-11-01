@@ -1,28 +1,16 @@
  {
   "expo": {
     "name": "MORA Market",
-    "slug": "mora",
+    "slug": "mora-market-praia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./icon.png.jpeg",
+    "icon": "./assets/icon.png",
     "splash": {
-      "image": "./icon.png.jpeg",
-      "backgroundColor": "#000000",
+      "backgroundColor": "#FF6B35",
       "resizeMode": "contain"
     },
     "android": {
-      "package": "com.moramarket.praia",
-      "versionCode": 3,
-      "adaptiveIcon": {
-        "foregroundImage": "./icon.png.jpeg",
-        "backgroundColor": "#000000"
-      }
-    },
-    "platforms": ["android"],
-    "extra": {
-      "eas": {
-        "projectId": "ad311868-9d85-4835-ae1c-6e662749201d"
-      }
+      "package": "com.moramarket.praia"
     }
   }
 }
