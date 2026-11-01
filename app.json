@@ -3,13 +3,22 @@
     "name": "MORA Market",
     "slug": "mora-market-praia",
     "version": "1.0.0",
+    "orientation": "portrait",
     "extra": {
       "eas": {
-        "projectId": "YOUR_ID_HERE"
+        "projectId": "ad311868-9d85-4835-ae1c-6e662749201d"
       }
     },
     "android": {
       "package": "com.moramarket.praia"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MORA precisa acesso a galeria."
+        }
+      ]
+    ]
   }
 }
