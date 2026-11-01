@@ -10,7 +10,16 @@
       "resizeMode": "contain"
     },
     "android": {
-      "package": "com.moramarket.praia"
-    }
+      "package": "com.moramarket.praia",
+      "permissions": ["CAMERA_ROLL", "MEDIA_LIBRARY"]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MORA precisa acesso a galeria para fotos dos produtos."
+        }
+      ]
+    ]
   }
 }
