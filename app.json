@@ -1,5 +1,15 @@
- "extra": {
-  "eas": {
-    "projectId": "PASTE-YOUR-PROJECT-ID-HERE"
+ {
+  "expo": {
+    "name": "MORA Market",
+    "slug": "mora-market-praia",
+    "version": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_ID_HERE"
+      }
+    },
+    "android": {
+      "package": "com.moramarket.praia"
+    }
   }
-},
+}
