@@ -1,1 +1,9 @@
- "firebase": "10.12.0"
+ {
+  "name": "mora-market",
+  "dependencies": {
+    "expo": "~51.0.0",
+    "react": "18.2.0",
+    "react-native": "0.74.0",
+    "firebase": "10.12.0"
+  }
+}
