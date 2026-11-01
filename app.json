@@ -4,14 +4,17 @@
     "slug": "mora",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./icon.png.jpeg",
     "splash": {
+      "image": "./icon.png.jpeg",
       "backgroundColor": "#000000",
       "resizeMode": "contain"
     },
     "android": {
       "package": "com.moramarket.praia",
-      "versionCode": 1,
+      "versionCode": 3,
       "adaptiveIcon": {
+        "foregroundImage": "./icon.png.jpeg",
         "backgroundColor": "#000000"
       }
     },
