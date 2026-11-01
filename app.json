@@ -4,13 +4,27 @@
     "slug": "mora",
     "version": "1.0.0",
     "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FF6B35",
+      "resizeMode": "contain",
+      "image": "./assets/icon.png"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.moramarket.praia",
+      "adaptiveIcon": {
+        "backgroundColor": "#FF6B35",
+        "foregroundImage": "./assets/icon.png"
+      }
+    },
     "extra": {
       "eas": {
         "projectId": "ad311868-9d85-4835-ae1c-6e662749201d"
       }
-    },
-    "android": {
-      "package": "com.moramarket.praia"
     },
     "plugins": [
       [
