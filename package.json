@@ -1,13 +1,23 @@
- {
-  "name": "mora-market",
+  {
+  "name": "mora",
   "version": "1.0.0",
+  "main": "App.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
   "dependencies": {
-    "expo": "~51.0.27",
+    "expo": "~51.0.38",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
     "react-native": "0.74.5",
-    "firebase": "10.12.0",
-    "expo-image-picker": "~15.0.7",
-    "expo-splash-screen": "~0.27.5"
-  }
+    "expo-image-picker": "~15.1.0",
+    "firebase": "10.12.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
 }
