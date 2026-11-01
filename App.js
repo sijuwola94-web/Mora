@@ -1,200 +1,106 @@
- import React, { useState } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+ import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView } from 'react-native';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD2mdL9guxMrvejqfxcsVrSbpzvSjd8lgk",
+  authDomain: "mora-market-praia.firebaseapp.com",
+  projectId: "mora-market-praia",
+  storageBucket: "mora-market-praia.firebasestorage.app",
+  messagingSenderId: "575355290150",
+  appId: "1:575355290150:web:4a20d0c6b44719f0155ce7",
+  measurementId: "G-QRSPWDV9XM"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 export default function App() {
-  // AUTH - PHONE ONLY
-  const [user, setUser] = useState(null);
-  const [authStep, setAuthStep] = useState('phone');
-  const [phone, setPhone] = useState('');
-  const [otpInput, setOtpInput] = useState('');
-  const [realOtp, setRealOtp] = useState('');
-
-  // APP
-  const [tab, setTab] = useState('buy');
-  const [items, setItems] = useState([
-    { id:'1', type:'sell', title:'iPhone 11 64GB', price:'45,000 CVE', name:'Tunde', loc:'Praia', desc:'Clean' },
-    { id:'2', type:'exchange', title:'EXCHANGE: Has 50€ Wants Naira', price:'Best Rate', name:'Kola', loc:'Fazenda', desc:'Can meet now' },
-  ]);
-  const [chats, setChats] = useState({});
-  const [activeChat, setActiveChat] = useState(null);
-  const [msg, setMsg] = useState('');
-  const [title, setTitle] = useState('');
+  const [products, setProducts] = useState([]);
+  const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [phone, setPhone] = useState('');
+  const [desc, setDesc] = useState('');
+  const [showPost, setShowPost] = useState(false);
+  const [search, setSearch] = useState('');
 
-  const sendOtp = () => {
-    if(phone.length < 7){ Alert.alert('Enter phone e.g. 9812345'); return; }
-    const code = Math.floor(1000 + Math.random()*9000).toString();
-    setRealOtp(code);
-    Alert.alert(`OTP to +238${phone}`, `DEMO CODE: ${code} - or use 1234`);
-    setAuthStep('otp');
+  useEffect(() => {
+    signInAnonymously(auth).catch(()=>{});
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const postProduct = async () => {
+    if (!name || !price || !phone) return Alert.alert("Fill name, price, phone");
+    try {
+      await addDoc(collection(db, "products"), {
+        name, price: Number(price), phone, desc, createdAt: serverTimestamp()
+      });
+      setName(''); setPrice(''); setPhone(''); setDesc(''); setShowPost(false);
+      Alert.alert("Posted! ✅ Everyone in Praia sees it now");
+    } catch(e){ Alert.alert("Error", e.message); }
   };
 
-  const verifyOtp = () => {
-    if(otpInput === realOtp || otpInput === '1234'){
-      setUser({ phone, name: `User ${phone.slice(-3)}` });
-    } else {
-      Alert.alert('Wrong OTP', 'Use 1234 for demo');
-    }
-  };
-
-  const openChat = (item) => {
-    setActiveChat(item);
-    if(!chats[item.id]){
-      setChats(prev=>({...prev, [item.id]: [{from:'them', text:`Hi! I'm ${item.name}. ${item.desc}`, time:'now'}]}));
-    }
-  };
-
-  const sendMsg = () => {
-    if(!msg.trim() || !activeChat) return;
-    setChats(prev=>({...prev, [activeChat.id]: [...(prev[activeChat.id]||[]), {from:'me', text:msg}]}));
-    setMsg('');
-    setTimeout(()=>{
-      setChats(prev=>({...prev, [activeChat.id]: [...prev[activeChat.id], {from:'them', text:'Okay bro, when we meet?'}]}));
-    },800);
-  };
-
-  const addPost = (type) => {
-    if(!title || !price) return;
-    const newItem = { id: Date.now().toString(), type, title, price, name:user.name, loc:'Praia', desc:'Chat me!' };
-    setItems([newItem, ...items]);
-    setTitle(''); setPrice('');
-    setTab(type==='exchange' ? 'exchange' : 'buy');
-  };
-
-  // LOGIN - PHONE ONLY
-  if(!user){
-    return (
-      <View style={styles.authContainer}>
-        <StatusBar style="light" />
-        <Text style={styles.logo}>MORA</Text>
-        <Text style={styles.sub}>Login with Phone Number</Text>
-        
-        {authStep==='phone' ? (
-          <View style={styles.authBox}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.phoneRow}><Text style={styles.prefix}>+238</Text>
-              <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="9812345" style={[styles.input,{flex:1}]}/>
-            </View>
-            <TouchableOpacity style={styles.authBtn} onPress={sendOtp}>
-              <Text style={styles.authBtnText}>SEND OTP</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.authBox}>
-            <Text style={styles.label}>Enter code sent to +238{phone}</Text>
-            <TextInput value={otpInput} onChangeText={setOtpInput} keyboardType="number-pad" maxLength={4} placeholder="0000" style={[styles.input,{fontSize:24, textAlign:'center', letterSpacing:10}]}/>
-            <TouchableOpacity style={styles.authBtn} onPress={verifyOtp}>
-              <Text style={styles.authBtnText}>VERIFY & LOGIN</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={()=>setAuthStep('phone')}><Text style={{color:'#aaa', textAlign:'center', marginTop:10}}>Change Number</Text></TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  }
-
-  if(activeChat){
-    const messages = chats[activeChat.id] || [];
-    return (
-      <View style={styles.container}>
-        <View style={styles.chatHeader}>
-          <TouchableOpacity onPress={()=>setActiveChat(null)}><Text style={styles.back}>← Back</Text></TouchableOpacity>
-          <View><Text style={styles.chatName}>{activeChat.name}</Text><Text style={styles.chatSub}>{activeChat.title}</Text></View>
-        </View>
-        <FlatList data={messages} keyExtractor={(_,i)=>i.toString()} style={{flex:1, padding:10}}
-          renderItem={({item})=>(
-            <View style={[styles.msgBubble, item.from==='me' ? styles.myMsg : styles.theirMsg]}>
-              <Text style={[styles.msgText, item.from==='me' && {color:'#000'}]}>{item.text}</Text>
-            </View>
-          )}
-        />
-        <View style={styles.inputRow}>
-          <TextInput value={msg} onChangeText={setMsg} placeholder="Type..." style={styles.chatInput}/>
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMsg}><Text style={{fontWeight:'bold'}}>SEND</Text></TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
-      <View style={{flexDirection:'row', justifyContent:'space-between', paddingHorizontal:15}}>
-        <Text style={styles.logoSmall}>MORA</Text>
-        <Text style={{color:'#aaa'}}>{user.name} | {user.phone} • Logout</Text>
-      </View>
+      <Text style={styles.logo}>MORA</Text>
+      <Text style={styles.sub}>Praia Market • Live</Text>
+      <TextInput style={styles.search} placeholder="Search in Praia..." value={search} onChangeText={setSearch} />
+      
+      <FlatList
+        data={filtered}
+        keyExtractor={item => item.id}
+        numColumns={2}
+        ListEmptyComponent={<Text style={{textAlign:'center', marginTop:50, color:'#888'}}>No products yet. Be first to sell! 👇</Text>}
+        renderItem={({item}) => (
+          <View style={styles.card}>
+            <View style={styles.imgPlace}><Text style={{fontSize:30}}>🛍️</Text></View>
+            <Text style={styles.pName} numberOfLines={2}>{item.name}</Text>
+            <Text style={styles.pPrice}>{item.price} CVE</Text>
+            <Text style={styles.pLoc} numberOfLines={1}>{item.desc}</Text>
+            <TouchableOpacity style={styles.chatBtn} onPress={()=>Alert.alert("Contact Seller", `WhatsApp: ${item.phone}\n\nCopy number and chat in WhatsApp`)}><Text style={{color:'white', fontWeight:'bold', fontSize:12}}>Chat Seller</Text></TouchableOpacity>
+          </View>
+        )}
+      />
 
-      <View style={styles.tabs}>
-        {[{k:'buy',l:'MARKET'},{k:'exchange',l:'EXCHANGE'},{k:'post',l:'+ POST'}].map(t=>(
-          <TouchableOpacity key={t.k} onPress={()=>setTab(t.k)} style={[styles.tab, tab===t.k && styles.tabActive]}>
-            <Text style={[styles.tabText, tab===t.k && {color:'#000'}]}>{t.l}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <TouchableOpacity style={styles.fab} onPress={()=>setShowPost(true)}><Text style={styles.fabText}>+ Sell</Text></TouchableOpacity>
 
-      {(tab==='buy' || tab==='exchange') && (
-        <FlatList data={tab==='buy' ? items.filter(i=>i.type!=='exchange') : items.filter(i=>i.type==='exchange')}
-          keyExtractor={i=>i.id}
-          renderItem={({item})=>(
-            <View style={styles.card}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.price}>{item.price}</Text>
-              <Text style={styles.desc}>{item.name} - {item.loc}</Text>
-              <TouchableOpacity style={styles.chatBtn} onPress={()=>openChat(item)}>
-                <Text style={styles.chatBtnText}>💬 Chat with {item.name}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        />
-      )}
-
-      {tab==='post' && (
-        <ScrollView style={{padding:15}}>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Title e.g. iPhone for sale or Has 50€" style={styles.input}/>
-          <TextInput value={price} onChangeText={setPrice} placeholder="Price" style={styles.input}/>
-          <TouchableOpacity style={styles.postBtn} onPress={()=>addPost('sell')}><Text style={styles.postBtnText}>POST FOR SALE</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.postBtn,{backgroundColor:'#00ff88'}]} onPress={()=>addPost('exchange')}><Text style={[styles.postBtnText,{color:'#000'}]}>POST EXCHANGE</Text></TouchableOpacity>
+      <Modal visible={showPost} animationType="slide">
+        <ScrollView style={{padding:20, marginTop:40}}>
+          <Text style={{fontSize:24, fontWeight:'900', marginBottom:20}}>Sell in MORA</Text>
+          <TextInput style={styles.input} placeholder="What are you selling? e.g iPhone 13" value={name} onChangeText={setName} />
+          <TextInput style={styles.input} placeholder="Price in CVE e.g 25000" keyboardType="numeric" value={price} onChangeText={setPrice} />
+          <TextInput style={styles.input} placeholder="Your WhatsApp number e.g 9912345" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+          <TextInput style={[styles.input, {height:80}]} placeholder="Location + details (e.g Fazenda, like new)" multiline value={desc} onChangeText={setDesc} />
+          <TouchableOpacity style={styles.postBtn} onPress={postProduct}><Text style={{color:'white', fontWeight:'bold', textAlign:'center'}}>POST NOW</Text></TouchableOpacity>
+          <TouchableOpacity onPress={()=>setShowPost(false)} style={{marginTop:20}}><Text style={{textAlign:'center', color:'#666'}}>Cancel</Text></TouchableOpacity>
         </ScrollView>
-      )}
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  authContainer:{flex:1, backgroundColor:'#0e0e0e', paddingTop:80, paddingHorizontal:20},
-  logo:{color:'#00ff88', fontSize:32, fontWeight:'bold', textAlign:'center'},
-  logoSmall:{color:'#00ff88', fontSize:18, fontWeight:'bold'},
-  sub:{color:'#777', textAlign:'center', marginBottom:20},
-  authBox:{backgroundColor:'#1c1c1c', padding:20, borderRadius:15},
-  label:{color:'#fff', marginTop:10, marginBottom:5, fontWeight:'bold'},
-  phoneRow:{flexDirection:'row', alignItems:'center', gap:5},
-  prefix:{color:'#fff', backgroundColor:'#333', padding:12, borderRadius:8},
-  input:{backgroundColor:'#fff', padding:12, borderRadius:8, marginBottom:10},
-  authBtn:{backgroundColor:'#00ff88', padding:15, borderRadius:10, marginTop:10},
-  authBtnText:{color:'#000', textAlign:'center', fontWeight:'bold'},
-  container:{flex:1, backgroundColor:'#0e0e0e', paddingTop:50},
-  tabs:{flexDirection:'row', justifyContent:'space-around', paddingHorizontal:10, marginBottom:10},
-  tab:{paddingVertical:10, paddingHorizontal:18, backgroundColor:'#222', borderRadius:20},
-  tabActive:{backgroundColor:'#00ff88'},
-  tabText:{color:'#fff', fontWeight:'bold', fontSize:12},
-  card:{backgroundColor:'#1c1c1c', padding:15, marginHorizontal:10, marginBottom:10, borderRadius:12},
-  title:{color:'#fff', fontWeight:'bold', fontSize:16},
-  price:{color:'#00ff88', fontWeight:'bold'},
-  desc:{color:'#aaa', fontSize:12},
-  chatBtn:{backgroundColor:'#fff', padding:12, borderRadius:8, marginTop:10},
-  chatBtnText:{color:'#000', textAlign:'center', fontWeight:'bold'},
-  chatHeader:{flexDirection:'row', alignItems:'center', padding:15, backgroundColor:'#1c1c1c', gap:15},
-  back:{color:'#00ff88', fontWeight:'bold'},
-  chatName:{color:'#fff', fontWeight:'bold'},
-  chatSub:{color:'#aaa', fontSize:11},
-  msgBubble:{maxWidth:'80%', padding:10, borderRadius:12, marginBottom:8},
-  myMsg:{backgroundColor:'#00ff88', alignSelf:'flex-end'},
-  theirMsg:{backgroundColor:'#222', alignSelf:'flex-start'},
-  msgText:{color:'#fff'},
-  inputRow:{flexDirection:'row', padding:10, backgroundColor:'#1c1c1c', gap:10},
-  chatInput:{flex:1, backgroundColor:'#fff', padding:12, borderRadius:20},
-  sendBtn:{backgroundColor:'#00ff88', paddingHorizontal:20, justifyContent:'center', borderRadius:20},
-  postBtn:{backgroundColor:'#fff', padding:14, borderRadius:8, marginTop:10},
-  postBtnText:{textAlign:'center', fontWeight:'bold'},
+  container:{flex:1, backgroundColor:'#fff', paddingTop:50, paddingHorizontal:12},
+  logo:{fontSize:32, fontWeight:'900', letterSpacing:5, textAlign:'center'},
+  sub:{textAlign:'center', color:'#666', marginBottom:15, fontSize:12},
+  search:{backgroundColor:'#f0f0f0', borderRadius:10, padding:12, marginBottom:12},
+  card:{flex:1, backgroundColor:'#fff', borderWidth:1, borderColor:'#eee', borderRadius:12, padding:10, margin:5},
+  imgPlace:{height:90, backgroundColor:'#f8f8f8', borderRadius:10, justifyContent:'center', alignItems:'center'},
+  pName:{fontWeight:'bold', marginTop:8, fontSize:13},
+  pPrice:{color:'#0a0', fontWeight:'bold', marginVertical:3},
+  pLoc:{fontSize:10, color:'#888'},
+  chatBtn:{backgroundColor:'#000', padding:8, borderRadius:8, marginTop:6, alignItems:'center'},
+  fab:{position:'absolute', bottom:25, right:20, backgroundColor:'#000', paddingHorizontal:22, paddingVertical:14, borderRadius:30, elevation:5},
+  fabText:{color:'#fff', fontWeight:'bold', fontSize:16},
+  input:{borderWidth:1, borderColor:'#ddd', borderRadius:10, padding:12, marginBottom:12},
+  postBtn:{backgroundColor:'#000', padding:15, borderRadius:10, marginTop:10}
 });
