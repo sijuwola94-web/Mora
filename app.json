@@ -1,25 +1,5 @@
- {
-  "expo": {
-    "name": "MORA Market",
-    "slug": "mora-market-praia",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "backgroundColor": "#FF6B35",
-      "resizeMode": "contain"
-    },
-    "android": {
-      "package": "com.moramarket.praia",
-      "permissions": ["CAMERA_ROLL", "MEDIA_LIBRARY"]
-    },
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "MORA precisa acesso a galeria para fotos dos produtos."
-        }
-      ]
-    ]
+ "extra": {
+  "eas": {
+    "projectId": "PASTE-YOUR-PROJECT-ID-HERE"
   }
-}
+},
